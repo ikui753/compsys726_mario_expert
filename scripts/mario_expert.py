@@ -278,7 +278,6 @@ class MarioExpert:
     Check for obstacle to jump over
     """
     def check_obstacle(self, row, col, game_area):
-        print("checking for obstacle")
         x, y = game_area.shape  # x is the number of rows, y is the number of columns
         for b in range(y):  # Iterate over columns
             for a in range(x):  # Iterate over rows
@@ -288,20 +287,25 @@ class MarioExpert:
                     (game_area[a][b] == Element.GROUND.value and b > col and a <= row+1)):
                     if b > col:  # If block is to the right of Mario
                         distance = self.get_distance(row, col, a, b)
+                        print(f"distance to obs: {distance}")
                         if game_area[a, b] == Element.BLOCK.value:
                             if game_area[a+1,b] == Element.BLOCK.value and game_area[a-1,b] == Element.BLOCK.value:
                                 print(f"Distance to block: {distance}")
-                        elif game_area[a,b] == Element.GROUND.value:
-                            print(f"block loc: {a,b}")
-                            if game_area[a+1,b] == Element.GROUND.value: #and game_area[a-1,b] == Element.GROUND.value:
-                                print(f"Distance to Hill: {distance}")
-                                if distance <= 1.0:
-                                    return True
+
                         elif game_area[a,b] == Element.PIPE.value:
                             print(f"distance to pipe: {distance}")
 
+                        elif game_area[a,b] == Element.GROUND.value:
+                            print(f"block loc: {a,b}")
+                            if game_area[a+1,b] == Element.GROUND.value:
+                                # normal obstacle 
+                                if game_area[a-1,b] == Element.GROUND.value:
+                                    print(f"Distance to Hill: {distance}")
+                                    if distance <= 1.0:
+                                        return "obstacle found"
+                        
                         if distance <= 2.0:
-                            return True  # jump over obstacle
+                            return "obstacle found"  # jump over obstacle
         return False
 
     def check_empty_jump(self, row, col, game_area):
@@ -452,13 +456,15 @@ class MarioExpert:
                 curr_action = Action.JUMP_POWER_UP
 
          # jump over obstacle
-        elif self.check_obstacle(row, col, game_area):
-            print("found obstacle")
-            if prev_action == Action.JUMP_OBS:
-                print("jump over obstacle")
-                curr_action = Action.RIGHT
-            else:
-                curr_action = Action.JUMP_OBS
+        elif self.check_obstacle(row, col, game_area) in ["obstacle found", "found stairs"]:
+            if self.check_obstacle(row, col, game_area):
+                if prev_action == Action.JUMP_OBS:
+                    print("jump over obstacle")
+                    curr_action = Action.RIGHT
+                else:
+                    curr_action = Action.JUMP_OBS
+            if self.check_obstacle(row, col, game_area) == "found stairs":
+                curr_action = Action.JUMP_RIGHT
         
         # elif self.check_platform_jump(row, col, game_area):
         #     if prev_action == Action.JUMP_OBS:
