@@ -373,6 +373,8 @@ class MarioExpert:
         print(f"Enemy loc: {enemy_row},{enemy_col}")
         distance = self.get_gumba_dist(row, col, game_area)
         print(f"enemy distance: {distance}")
+
+        obstacle_check = self.check_obstacle(row, col, game_area,)
         
         if self.check_empty_jump(row, col, game_area):
             if prev_action == Action.JUMP_EMPTY:
@@ -456,27 +458,12 @@ class MarioExpert:
                 curr_action = Action.JUMP_POWER_UP
 
          # jump over obstacle
-        elif self.check_obstacle(row, col, game_area) in ["obstacle found", "found stairs"]:
-            if self.check_obstacle(row, col, game_area):
-                if prev_action == Action.JUMP_OBS:
-                    print("jump over obstacle")
-                    curr_action = Action.RIGHT
-                else:
-                    curr_action = Action.JUMP_OBS
-            if self.check_obstacle(row, col, game_area) == "found stairs":
-                curr_action = Action.JUMP_RIGHT
-        
-        # elif self.check_platform_jump(row, col, game_area):
-        #     if prev_action == Action.JUMP_OBS:
-        #         print("jump onto platform")
-        #         curr_action = Action.JUMP_OBS
-        #     else:
-        #         curr_action = Action.JUMP
-        
-
-        # if walked off a ledge without jumping
-        #elif self.check_surrounding(row, col, game_area, Element.EMPTY.value) and prev_action == Action.RIGHT:
-        #    curr_action = Action.LEFT
+        elif obstacle_check in ["obstacle found", "found stairs", True]:
+            if prev_action == Action.JUMP_OBS:
+                print("jump over obstacle")
+                curr_action = Action.RIGHT
+            else:
+                curr_action = Action.JUMP_OBS
 
         elif row == 0:
             curr_action = Action.UP  # when mario is off screen/ dead, move up
