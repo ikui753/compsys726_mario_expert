@@ -42,6 +42,7 @@ class Element(Enum):
     EMPTY = 0
     TOAD = 16
     FLY = 18
+    ARCHER = 19
 
 row, col = 0, 0
 prev_x = 0
@@ -405,109 +406,123 @@ class MarioExpert:
 
         print(f"enemy distance: {enemy_dist}")
 
-        # CHECK EMPTY JUMP (PLATFORMS, OR HOLES)
-        if self.check_empty_jump(row, col, game_area):
-            if prev_action == Action.JUMP_EMPTY:
-                print("jump over empty")
-                curr_action = Action.RIGHT
-            else:
-                curr_action = Action.JUMP_EMPTY
-        
-        # CHECK IF STANDING ON A PIPE
-        elif game_area[row+2][col] == Element.PIPE.value:
-                if(prev_action in [Action.JUMP, Action.JUMP_EMPTY, Action.JUMP_OBS, Action.JUMP_POWER_UP]):
-                    curr_action = Action.UP
-                    print("up pipe")
-                else:
-                    print("jump off pipe")
-                    curr_action = Action.JUMP_RIGHT
-
-        # CHECK IF THERE IS AN ENEMY BELOW
-        elif (row + 2 < enemy_row and
-                  enemy_row != 0 and 
-                  prev_action == Action.RIGHT and
-                  (game_area[row+2][col] != Element.EMPTY.value and
-                   enemy_dist < 7)): 
-                print("jump skip over enemy")
-                curr_action = Action.JUMP_EMPTY
-
-        # IF TOO CLOSE TO AN ENEMY, REACT
-        elif enemy_dist <= 4.5:
-            # PROCESS GUMBAS
-            if enemy_type == Element.GUMBA.value:
-                # normal case
-                if prev_action == Action.RIGHT:
-                    curr_action = Action.JUMP # jump over gumba
-                # edge cases
-                # mario too close to gumba, just skip gumba
-                elif prev_action == Action.ENEMY_LEFT and enemy_dist < 2 and enemy_dist > 1.5:
-                    curr_action = Action.JUMP_SKIP_ENEMY
-                # if prev action was jump, can't jump again
-                elif prev_action == Action.ENEMY_LEFT and enemy_dist >= 1.5:
-                    # can jump over enemy now, needs to jump to the right
-                    # print("jump right")
-                    curr_action = Action.JUMP
-
-                # mario just jumped or in air
-                elif prev_action == Action.JUMP:
-                    if enemy_dist < 4:
-                        # safe to move left
-                        print("gumba left")
-                        curr_action = Action.ENEMY_LEFT
-                    else:
-                        curr_action = Action.JUMP_RIGHT
+        if row < 14:
                 
+            # CHECK EMPTY JUMP (PLATFORMS, OR HOLES)
+            if self.check_empty_jump(row, col, game_area):
+                if prev_action == Action.JUMP_EMPTY:
+                    print("jump over empty")
+                    curr_action = Action.RIGHT
                 else:
-                    curr_action = Action.JUMP
+                    curr_action = Action.JUMP_EMPTY
             
-            # PROCESS TOAD ENEMIES                    
-            elif enemy_type == Element.TOAD.value and enemy_dist <= 4:
-                print("toad left")
-                if prev_action == Action.JUMP:
-                    curr_action = Action.LEFT
-                else:
-                    curr_action = Action.JUMP
+            # CHECK IF STANDING ON A PIPE
+            elif game_area[row+2][col] == Element.PIPE.value:
+                    if(prev_action in [Action.JUMP, Action.JUMP_EMPTY, Action.JUMP_OBS, Action.JUMP_POWER_UP]):
+                        curr_action = Action.UP
+                        print("up pipe")
+                    else:
+                        print("jump off pipe")
+                        curr_action = Action.JUMP_RIGHT
+
+            # CHECK IF THERE IS AN ENEMY BELOW
+            elif (row + 2 < enemy_row and
+                    enemy_row != 0 and 
+                    prev_action == Action.RIGHT and
+                    (game_area[row+2][col] != Element.EMPTY.value and
+                    enemy_dist < 7)): 
+                    print("jump skip over enemy")
+                    curr_action = Action.JUMP_EMPTY
+
+            # IF TOO CLOSE TO AN ENEMY, REACT
+            elif enemy_dist <= 4.5:
+                # PROCESS GUMBAS
+                if enemy_type == Element.GUMBA.value:
+                    # normal case
+                    if prev_action == Action.RIGHT:
+                        curr_action = Action.JUMP # jump over gumba
+                    # edge cases
+                    # mario too close to gumba, just skip gumba
+                    elif prev_action == Action.ENEMY_LEFT and enemy_dist < 2 and enemy_dist > 1.5:
+                        curr_action = Action.JUMP_SKIP_ENEMY
+                    # if prev action was jump, can't jump again
+                    elif prev_action == Action.ENEMY_LEFT and enemy_dist >= 1.5:
+                        # can jump over enemy now, needs to jump to the right
+                        # print("jump right")
+                        curr_action = Action.JUMP
+
+                    # mario just jumped or in air
+                    elif prev_action == Action.JUMP:
+                        if enemy_dist < 4:
+                            # safe to move left
+                            print("gumba left")
+                            curr_action = Action.ENEMY_LEFT
+                        else:
+                            curr_action = Action.JUMP_RIGHT
                     
-            # PROCESS FLY ENEMIES
-            elif enemy_type == Element.FLY.value and enemy_dist <= 3:
-                if prev_action == Action.JUMP:
-                    print("fly left")
-                    curr_action = Action.LEFT
+                    else:
+                        curr_action = Action.JUMP
+                
+                # PROCESS TOAD ENEMIES                    
+                elif enemy_type == Element.TOAD.value and enemy_dist <= 4:
+                    print("toad left")
+                    if prev_action == Action.JUMP:
+                        curr_action = Action.LEFT
+                    else:
+                        curr_action = Action.JUMP
+
+                # PROCESS FLY ENEMIES
+                elif enemy_type == Element.FLY.value and enemy_dist <= 3:
+                    if prev_action == Action.JUMP:
+                        print("fly left")
+                        curr_action = Action.LEFT
+                    else:
+                        curr_action = Action.JUMP
+
+                # PROCESS ARCHER ENEMIES
+                elif enemy_type == Element.ARCHER.value and enemy_dist <= 4:
+                    if prev_action == Action.JUMP:
+                        print("archer left")
+                        curr_action = Action.LEFT
+                    else:
+                        curr_action = Action.JUMP
 
                 else:
-                    curr_action = Action.JUMP
-            else:
-                print("=====================")
-                print("Unknown Enemy found")
-                print("=====================")
-                curr_action = Action.JUMP
+                    print("=====================")
+                    print("Unknown Enemy found")
+                    print(f"Unknown enemy value: {enemy_type}")
+                    print("=====================")
+                    curr_action = Action.RIGHT
 
-        # JUMP TO COLLECT POWER UP BOXES
-        elif self.check_power_up(row, col, game_area):
-            if(prev_action == Action.JUMP_POWER_UP):
-                print("Power up right")
+            # JUMP TO COLLECT POWER UP BOXES
+            elif self.check_power_up(row, col, game_area):
+                if(prev_action == Action.JUMP_POWER_UP):
+                    print("Power up right")
+                    curr_action = Action.RIGHT
+                elif prev_action == Action.JUMP:
+                    curr_action = Action.UP # stop so that mario can check for power ups
+                else:
+                    curr_action = Action.JUMP_POWER_UP
+
+            # JUMP OVER OBSTACLES
+            elif obstacle_check in ["obstacle found", "found stairs", True]:
+                print(f"prev_x: {prev_x}")
+                print(f"curr_x: {curr_x}")
+                if prev_x == curr_x and obstacle_check == "found stairs":
+                    curr_action = Action.JUMP_STAIRS
+                elif prev_action == Action.JUMP_OBS:
+                    print("jump over obstacle")
+                    curr_action = Action.RIGHT
+                else:
+                    curr_action = Action.JUMP_OBS
+
+            elif row == 0:
+                curr_action = Action.UP  # when mario is off screen/ dead, move up
+            else:
                 curr_action = Action.RIGHT
-            elif prev_action == Action.JUMP:
-                curr_action = Action.UP # stop so that mario can check for power ups
-            else:
-                curr_action = Action.JUMP_POWER_UP
 
-        # JUMP OVER OBSTACLES
-        elif obstacle_check in ["obstacle found", "found stairs", True]:
-            print(f"prev_x: {prev_x}")
-            print(f"curr_x: {curr_x}")
-            if prev_x == curr_x and obstacle_check == "found stairs":
-                curr_action = Action.JUMP_STAIRS
-            elif prev_action == Action.JUMP_OBS:
-                print("jump over obstacle")
-                curr_action = Action.RIGHT
-            else:
-                curr_action = Action.JUMP_OBS
-
-        elif row == 0:
-            curr_action = Action.UP  # when mario is off screen/ dead, move up
         else:
-            curr_action = Action.RIGHT
+            curr_action = Action.UP
         
         prev_action = curr_action # record current action
 
