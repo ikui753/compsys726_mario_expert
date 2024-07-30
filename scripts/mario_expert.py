@@ -29,6 +29,7 @@ class Action(Enum):
     JUMP_SKIP_ENEMY = 9
     JUMP_RIGHT = 10
     ENEMY_LEFT = 11
+    JUMP_STAIRS = 12
 
 class Element(Enum):
     GUMBA = 15
@@ -43,6 +44,8 @@ class Element(Enum):
     FLY = 18
 
 row, col = 0, 0
+prev_x = 0
+curr_x = 0
 prev_action = Action.RIGHT
 next_action = Action.RIGHT
 
@@ -149,6 +152,22 @@ class MarioController(MarioEnvironment):
                 self.pyboy.tick()
             self.pyboy.send_input(self.release_button[Action.RIGHT.value])
             action = Action.JUMP.value
+        
+        elif action == Action.JUMP_STAIRS.value:
+            # normal jump right with normal button press timings
+            self.pyboy.send_input(self.valid_actions[Action.LEFT.value])
+            for _ in range(self.act_freq):
+                self.pyboy.tick()
+            self.pyboy.send_input(self.release_button[Action.LEFT.value])
+            
+            self.pyboy.send_input(self.valid_actions[Action.RIGHT.value])
+            for _ in range(self.act_freq):
+                self.pyboy.tick()
+            self.pyboy.send_input(self.valid_actions[Action.JUMP.value])
+            for _ in range(self.act_freq):
+                self.pyboy.tick()
+            self.pyboy.send_input(self.release_button[Action.JUMP.value])
+            action = Action.RIGHT.value
 
         else:
             # normal hold duration on all other inputs
@@ -297,12 +316,17 @@ class MarioExpert:
 
                         elif game_area[a,b] == Element.GROUND.value:
                             print(f"block loc: {a,b}")
+                            print(f"above value: {game_area[a-1,b]}")
                             if game_area[a+1,b] == Element.GROUND.value:
                                 # normal obstacle 
                                 if game_area[a-1,b] == Element.GROUND.value:
                                     print(f"Distance to Hill: {distance}")
                                     if distance <= 1.0:
                                         return "obstacle found"
+                                # # if found stairs below mario
+                                elif a == row+1: #and game_area[a-1,b] == Element.EMPTY.value:
+                                    if distance <= 2.0:
+                                        return "found stairs"
                         
                         if distance <= 2.0:
                             return "obstacle found"  # jump over obstacle
@@ -357,7 +381,7 @@ class MarioExpert:
     
     
     def choose_action(self):
-        global prev_action, next_action
+        global prev_action, next_action, prev_x, curr_x
         global row, col
 
         curr_action = 0
@@ -367,9 +391,11 @@ class MarioExpert:
 
         row,col = self.find_mario(game_area, row, col) # get game area
         enemy_row, enemy_col = self.find_gumba(game_area)
+        curr_x = self.environment.get_x_position()
 
         print(f"prev_action: {prev_action}")
         print(f"Mario loc: {row},{col}")
+        print(f"curr_x: {curr_x}")
         print(f"Enemy loc: {enemy_row},{enemy_col}")
         distance = self.get_gumba_dist(row, col, game_area)
         print(f"enemy distance: {distance}")
@@ -459,7 +485,11 @@ class MarioExpert:
 
          # jump over obstacle
         elif obstacle_check in ["obstacle found", "found stairs", True]:
-            if prev_action == Action.JUMP_OBS:
+            print(f"prev_x: {prev_x}")
+            print(f"curr_x: {curr_x}")
+            if prev_x == curr_x and obstacle_check == "found stairs":
+                curr_action = Action.JUMP_STAIRS
+            elif prev_action == Action.JUMP_OBS:
                 print("jump over obstacle")
                 curr_action = Action.RIGHT
             else:
@@ -474,7 +504,7 @@ class MarioExpert:
         prev_action = curr_action # record current action
 
         print("Action: ", curr_action)
-
+        prev_x = curr_x
         return curr_action.value  # Return the value of the current action
     
     def step(self):
