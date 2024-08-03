@@ -157,7 +157,8 @@ class MarioController(MarioEnvironment):
         elif action == Action.JUMP_STAIRS.value:
             # normal jump right with normal button press timings
             self.pyboy.send_input(self.valid_actions[Action.LEFT.value])
-            for _ in range(self.act_freq):
+            time = int(self.act_freq * 0.5)
+            for _ in range(time):
                 self.pyboy.tick()
             self.pyboy.send_input(self.release_button[Action.LEFT.value])
             
@@ -238,7 +239,7 @@ class MarioExpert:
             for b in range(y):
                 if game_area[a][b] >= Element.GUMBA.value:
                     return (a, b)
-        return 0,0
+        return 10000,0
     
     def get_enemy_dist(self, row, col, game_area):
         x, y = game_area.shape  # x is the number of rows, y is the number of columns
@@ -300,38 +301,39 @@ class MarioExpert:
     """
     def check_obstacle(self, row, col, game_area):
         x, y = game_area.shape  # x is the number of rows, y is the number of columns
-        for b in range(y):  # Iterate over columns
-            for a in range(x):  # Iterate over rows
-                # Check for blocks or pipes
-                if (game_area[a][b] == Element.BLOCK.value or 
-                    game_area[a][b] == Element.PIPE.value or
-                    (game_area[a][b] == Element.GROUND.value and b > col and a <= row+1)):
-                    if b > col:  # If block is to the right of Mario
-                        distance = self.get_distance(row, col, a, b)
-                        print(f"distance to obs: {distance}")
-                        if game_area[a, b] == Element.BLOCK.value:
-                            if game_area[a+1,b] == Element.BLOCK.value and game_area[a-1,b] == Element.BLOCK.value:
-                                print(f"Distance to block: {distance}")
+        if row <= 14: 
+            for b in range(y):  # Iterate over columns
+                for a in range(x):  # Iterate over rows
+                    # Check for blocks or pipes
+                    if (game_area[a][b] == Element.BLOCK.value or 
+                        game_area[a][b] == Element.PIPE.value or
+                        (game_area[a][b] == Element.GROUND.value and b > col and a <= row+1)):
+                        if b > col:  # If block is to the right of Mario
+                            distance = self.get_distance(row, col, a, b)
+                            print(f"distance to obs: {distance}")
+                            if game_area[a, b] == Element.BLOCK.value:
+                                if game_area[a+1,b] == Element.BLOCK.value and game_area[a-1,b] == Element.BLOCK.value:
+                                    print(f"Distance to block: {distance}")
 
-                        elif game_area[a,b] == Element.PIPE.value:
-                            print(f"distance to pipe: {distance}")
+                            elif game_area[a,b] == Element.PIPE.value:
+                                print(f"distance to pipe: {distance}")
 
-                        elif game_area[a,b] == Element.GROUND.value:
-                            print(f"block loc: {a,b}")
-                            print(f"above value: {game_area[a-1,b]}")
-                            if game_area[a+1,b] == Element.GROUND.value:
-                                # normal obstacle 
-                                if game_area[a-1,b] == Element.GROUND.value:
-                                    print(f"Distance to Hill: {distance}")
-                                    if distance <= 1.0:
-                                        return "obstacle found"
-                                # # if found stairs below mario
-                                elif a == row+1: #and game_area[a-1,b] == Element.EMPTY.value:
-                                    if distance <= 2.0:
-                                        return "found stairs"
-                        
-                        if distance <= 2.0:
-                            return "obstacle found"  # jump over obstacle
+                            elif game_area[a,b] == Element.GROUND.value:
+                                print(f"block loc: {a,b}")
+                                print(f"above value: {game_area[a-1,b]}")
+                                if game_area[a+1,b] == Element.GROUND.value:
+                                    # normal obstacle 
+                                    if game_area[a-1,b] == Element.GROUND.value:
+                                        print(f"Distance to Hill: {distance}")
+                                        if distance <= 1.0:
+                                            return "obstacle found"
+                                    # # if found stairs below mario
+                                    elif a == row+1: #and game_area[a-1,b] == Element.EMPTY.value:
+                                        if distance <= 2.0:
+                                            return "found stairs"
+                            
+                            if distance <= 2.0:
+                                return "obstacle found"  # jump over obstacle
         return False
 
     def check_empty_jump(self, row, col, game_area):
@@ -407,9 +409,12 @@ class MarioExpert:
         print(f"enemy distance: {enemy_dist}")
 
         if row < 14:
-                
+            
+            if enemy_row < row and enemy_dist < 6.0:
+                curr_action = Action.LEFT
+            
             # CHECK EMPTY JUMP (PLATFORMS, OR HOLES)
-            if self.check_empty_jump(row, col, game_area):
+            elif self.check_empty_jump(row, col, game_area):
                 if prev_action == Action.JUMP_EMPTY:
                     print("jump over empty")
                     curr_action = Action.RIGHT
@@ -524,6 +529,10 @@ class MarioExpert:
         else:
             curr_action = Action.UP
         
+        # fix up stuck condition
+        if prev_action == Action.UP and curr_action == Action.UP:
+            curr_action = Action.RIGHT
+        
         prev_action = curr_action # record current action
 
         print("Action: ", curr_action)
@@ -534,7 +543,7 @@ class MarioExpert:
         """
         Runs each step of the game
         """
-        # input("Press enter to continue") # for testing
+        input("Press enter to continue") # for testing
         # Choose an action - button press or other...
         action = self.choose_action()
         # Run the action on the environment
