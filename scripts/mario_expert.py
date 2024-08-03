@@ -30,6 +30,8 @@ class Action(Enum):
     JUMP_RIGHT = 10
     ENEMY_LEFT = 11
     JUMP_STAIRS = 12
+    TUNNEL_LEFT = 13
+    JUMP_BIG_GAP = 14
 
 class Element(Enum):
     GUMBA = 15
@@ -121,12 +123,24 @@ class MarioController(MarioEnvironment):
         elif action == Action.JUMP_EMPTY.value:
             self.pyboy.send_input(self.valid_actions[Action.JUMP.value])
             self.pyboy.send_input(self.valid_actions[Action.RIGHT.value])
+
             for _ in range(self.act_freq * 5):
                 self.pyboy.tick()
             
             print("releasing right jump empty")
-            self.pyboy.send_input(self.release_button[Action.RIGHT.value])            
-            action = Action.JUMP.value
+            self.pyboy.send_input(self.release_button[Action.JUMP.value])            
+            action = Action.RIGHT.value
+        
+        elif action == Action.JUMP_BIG_GAP.value:
+            self.pyboy.send_input(self.valid_actions[Action.JUMP.value])
+            # self.pyboy.send_input(self.valid_actions[Action.RIGHT.value])
+
+            for _ in range(self.act_freq * 10):
+                self.pyboy.tick()
+            
+            print("releasing right jump empty")
+            self.pyboy.send_input(self.release_button[Action.JUMP.value])            
+            action = Action.RIGHT.value
 
         elif action == Action.ENEMY_LEFT.value:
             self.pyboy.send_input(self.valid_actions[Action.LEFT.value])
@@ -134,7 +148,14 @@ class MarioController(MarioEnvironment):
             for _ in range(time):
                 self.pyboy.tick()
             
-            print("releasing enemy left ")
+            print("releasing enemy left")
+            action = Action.LEFT.value
+
+        elif action == Action.TUNNEL_LEFT.value:
+            self.pyboy.send_input(self.valid_actions[Action.LEFT.value])
+            for _ in range(self.act_freq*2):
+                self.pyboy.tick()
+            
             action = Action.LEFT.value
             
         elif action == Action.JUMP_SKIP_ENEMY.value:
@@ -157,13 +178,13 @@ class MarioController(MarioEnvironment):
         elif action == Action.JUMP_STAIRS.value:
             # normal jump right with normal button press timings
             self.pyboy.send_input(self.valid_actions[Action.LEFT.value])
-            time = int(self.act_freq * 0.5)
+            time = int(self.act_freq * 0.2)
             for _ in range(time):
                 self.pyboy.tick()
             self.pyboy.send_input(self.release_button[Action.LEFT.value])
             
             self.pyboy.send_input(self.valid_actions[Action.RIGHT.value])
-            for _ in range(self.act_freq):
+            for _ in range(self.act_freq): 
                 self.pyboy.tick()
             self.pyboy.send_input(self.valid_actions[Action.JUMP.value])
             for _ in range(self.act_freq):
@@ -310,7 +331,7 @@ class MarioExpert:
                         (game_area[a][b] == Element.GROUND.value and b > col and a <= row+1)):
                         if b > col:  # If block is to the right of Mario
                             distance = self.get_distance(row, col, a, b)
-                            print(f"distance to obs: {distance}")
+                            # print(f"distance to obs: {distance}")
                             if game_area[a, b] == Element.BLOCK.value:
                                 if game_area[a+1,b] == Element.BLOCK.value and game_area[a-1,b] == Element.BLOCK.value:
                                     print(f"Distance to block: {distance}")
@@ -319,8 +340,8 @@ class MarioExpert:
                                 print(f"distance to pipe: {distance}")
 
                             elif game_area[a,b] == Element.GROUND.value:
-                                print(f"block loc: {a,b}")
-                                print(f"above value: {game_area[a-1,b]}")
+                                # print(f"block loc: {a,b}")
+                                # print(f"above value: {game_area[a-1,b]}")
                                 if game_area[a+1,b] == Element.GROUND.value:
                                     # normal obstacle 
                                     if game_area[a-1,b] == Element.GROUND.value:
@@ -348,13 +369,13 @@ class MarioExpert:
                             game_area[a][b-3] == Element.GROUND.value) or 
                             (game_area[a][b-1] == Element.BLOCK.value and
                             game_area[a][b-2] == Element.BLOCK.value and
-                            game_area[a][b-3] == Element.BLOCK.value) and
-                            (game_area[a-1][b-1]) in [0, 1]):
+                            game_area[a][b-3] == Element.BLOCK.value)): #and
+                            #(game_area[a-1][b-1]) in [0, 1]):
                             # If ground is to the right and below of Mario and block next to it is ground
                             print(f"Empty loc: {a},{b}")
                             distance = self.get_distance(row, col, a, b)
                             print(f"Distance to empty: {distance}")
-                            if distance <= 2.5:
+                            if distance <= 2.9: # changed from 2.5 to 2.9
                                 return True  # jump over empty
         return False
 
@@ -410,14 +431,18 @@ class MarioExpert:
 
         if row < 14:
             
-            if enemy_row < row and enemy_dist < 6.0:
+            if enemy_row < row and enemy_col > col and enemy_dist < 6.0:
                 curr_action = Action.LEFT
-            
+
             # CHECK EMPTY JUMP (PLATFORMS, OR HOLES)
             elif self.check_empty_jump(row, col, game_area):
-                if prev_action == Action.JUMP_EMPTY:
+                if 2282 <= curr_x <= 2286 and self.environment.get_stage() == 1 and self.environment.get_world() == 1: # edge case
+                    curr_action = Action.UP
+                elif prev_action == Action.JUMP_EMPTY or prev_action == Action.JUMP_BIG_GAP:
                     print("jump over empty")
                     curr_action = Action.RIGHT
+                elif prev_action == Action.UP:
+                    curr_action = Action.JUMP_BIG_GAP
                 else:
                     curr_action = Action.JUMP_EMPTY
             
@@ -458,10 +483,10 @@ class MarioExpert:
 
                     # mario just jumped or in air
                     elif prev_action == Action.JUMP:
-                        if enemy_dist < 4:
+                        if enemy_dist < 5:
                             # safe to move left
                             print("gumba left")
-                            curr_action = Action.ENEMY_LEFT
+                            curr_action = Action.ENEMY_LEFT 
                         else:
                             curr_action = Action.JUMP_RIGHT
                     
@@ -485,7 +510,8 @@ class MarioExpert:
                         curr_action = Action.JUMP
 
                 # PROCESS ARCHER ENEMIES
-                elif enemy_type == Element.ARCHER.value and enemy_dist <= 4:
+                # only jump if it's on the same row, otherwise just escape
+                elif enemy_type == Element.ARCHER.value and enemy_dist <= 4 and enemy_row == row:
                     if prev_action == Action.JUMP:
                         print("archer left")
                         curr_action = Action.LEFT
