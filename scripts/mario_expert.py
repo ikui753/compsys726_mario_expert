@@ -431,23 +431,8 @@ class MarioExpert:
 
         if row < 14:
             
-            if enemy_row < row and enemy_col > col and enemy_dist < 6.0:
-                curr_action = Action.LEFT
-
-            # CHECK EMPTY JUMP (PLATFORMS, OR HOLES)
-            elif self.check_empty_jump(row, col, game_area):
-                if 2282 <= curr_x <= 2286 and self.environment.get_stage() == 1 and self.environment.get_world() == 1: # edge case
-                    curr_action = Action.UP
-                elif prev_action == Action.JUMP_EMPTY or prev_action == Action.JUMP_BIG_GAP:
-                    print("jump over empty")
-                    curr_action = Action.RIGHT
-                elif prev_action == Action.UP:
-                    curr_action = Action.JUMP_BIG_GAP
-                else:
-                    curr_action = Action.JUMP_EMPTY
-            
             # CHECK IF STANDING ON A PIPE
-            elif game_area[row+2][col] == Element.PIPE.value:
+            if game_area[row+2][col] == Element.PIPE.value:
                     if(prev_action in [Action.JUMP, Action.JUMP_EMPTY, Action.JUMP_OBS, Action.JUMP_POWER_UP]):
                         curr_action = Action.UP
                         print("up pipe")
@@ -455,10 +440,14 @@ class MarioExpert:
                         print("jump off pipe")
                         curr_action = Action.JUMP_RIGHT
 
+            # CHECK IF THERE IS AN ENEMY ABOVE
+            elif enemy_row < row and enemy_col > col and enemy_dist < 6.0:
+                curr_action = Action.LEFT
+
             # CHECK IF THERE IS AN ENEMY BELOW
-            elif (row + 2 < enemy_row and
+            elif (row + 2 <= enemy_row and
                     enemy_row != 0 and 
-                    prev_action == Action.RIGHT and
+                    prev_action in [Action.RIGHT]  and
                     (game_area[row+2][col] != Element.EMPTY.value and
                     enemy_dist < 7)): 
                     print("jump skip over enemy")
@@ -525,6 +514,18 @@ class MarioExpert:
                     print("=====================")
                     curr_action = Action.RIGHT
 
+            # CHECK EMPTY JUMP (PLATFORMS, OR HOLES)
+            elif self.check_empty_jump(row, col, game_area):
+                if 2282 <= curr_x <= 2286 and self.environment.get_stage() == 1 and self.environment.get_world() == 1: # edge case
+                    curr_action = Action.UP
+                elif prev_action == Action.JUMP_EMPTY or prev_action == Action.JUMP_BIG_GAP:
+                    print("jump over empty")
+                    curr_action = Action.LEFT
+                elif prev_action == Action.UP:
+                    curr_action = Action.JUMP_BIG_GAP
+                else:
+                    curr_action = Action.JUMP_EMPTY
+
             # JUMP TO COLLECT POWER UP BOXES
             elif self.check_power_up(row, col, game_area):
                 if(prev_action == Action.JUMP_POWER_UP):
@@ -539,11 +540,14 @@ class MarioExpert:
             elif obstacle_check in ["obstacle found", "found stairs", True]:
                 print(f"prev_x: {prev_x}")
                 print(f"curr_x: {curr_x}")
+
                 if prev_x == curr_x and obstacle_check == "found stairs":
                     curr_action = Action.JUMP_STAIRS
+
                 elif prev_action == Action.JUMP_OBS:
                     print("jump over obstacle")
                     curr_action = Action.RIGHT
+
                 else:
                     curr_action = Action.JUMP_OBS
 
@@ -569,7 +573,7 @@ class MarioExpert:
         """
         Runs each step of the game
         """
-        input("Press enter to continue") # for testing
+        # input("Press enter to continue") # for testing
         # Choose an action - button press or other...
         action = self.choose_action()
         # Run the action on the environment
