@@ -32,6 +32,7 @@ class Action(Enum):
     JUMP_STAIRS = 12
     TUNNEL_LEFT = 13
     JUMP_BIG_GAP = 14
+    JUMP_EMPTY_REDUCED = 15
 
 class Element(Enum):
     GUMBA = 15
@@ -190,6 +191,17 @@ class MarioController(MarioEnvironment):
             for _ in range(self.act_freq):
                 self.pyboy.tick()
             self.pyboy.send_input(self.release_button[Action.JUMP.value])
+            action = Action.RIGHT.value
+
+        elif action == Action.JUMP_EMPTY_REDUCED.value:
+            self.pyboy.send_input(self.valid_actions[Action.JUMP.value])
+            self.pyboy.send_input(self.valid_actions[Action.RIGHT.value])
+
+            for _ in range(self.act_freq * 3):
+                self.pyboy.tick()
+            
+            print("REDUCED JUMP EMPTY")
+            self.pyboy.send_input(self.release_button[Action.JUMP.value])            
             action = Action.RIGHT.value
 
         else:
@@ -422,6 +434,7 @@ class MarioExpert:
         print(f"Mario loc: {row},{col}")
         print(f"curr_x: {curr_x}")
         print(f"Enemy loc: {enemy_row},{enemy_col}")
+        print(f"Level: {self.environment.get_world()} {self.environment.get_stage()}")
         
         # VARIABLES TO TRACK ENEMIES OR OBJECTS TO JUMP OVER/ REACT TO
         enemy_dist, enemy_type = self.get_enemy_dist(row, col, game_area)
@@ -518,7 +531,11 @@ class MarioExpert:
             elif self.check_empty_jump(row, col, game_area):
                 if 2282 <= curr_x <= 2286 and self.environment.get_stage() == 1 and self.environment.get_world() == 1: # edge case
                     curr_action = Action.UP
-                elif prev_action == Action.JUMP_EMPTY or prev_action == Action.JUMP_BIG_GAP:
+                # IN LEVEL 1-2, JUMP SHORTER DISTANCES
+                elif self.environment.get_world() == 1 and self.environment.get_stage() == 2:
+                    print("jump empty reduced")
+                    curr_action = Action.JUMP_EMPTY_REDUCED
+                elif prev_action == Action.JUMP_EMPTY or prev_action == Action.JUMP_BIG_GAP or prev_action == Action.JUMP_EMPTY_REDUCED:
                     print("jump over empty")
                     curr_action = Action.LEFT
                 elif prev_action == Action.UP:
