@@ -197,7 +197,7 @@ class MarioController(MarioEnvironment):
             self.pyboy.send_input(self.valid_actions[Action.JUMP.value])
             self.pyboy.send_input(self.valid_actions[Action.RIGHT.value])
 
-            for _ in range(self.act_freq * 3):
+            for _ in range(self.act_freq * 1):
                 self.pyboy.tick()
             
             print("REDUCED JUMP EMPTY")
@@ -286,34 +286,6 @@ class MarioExpert:
                         return distance, game_area[a, b]
         # Return a default large distance and a default value if no enemy is found
         return 10000, None
-    
-    # def get_toad_dist(self, row, col, game_area):
-    #     x, y = game_area.shape  # x is the number of rows, y is the number of columns
-    #     for b in range(y):  # Iterate over columns
-    #         for a in range(x):  # Iterate over rows
-    #             # Check for blocks
-    #             if game_area[a, b] == Element.TOAD.value:
-    #                 # Compute distance
-    #                 if b >= col:  # If gumba is to the right of Mario
-    #                     distance = self.get_distance(row, col, a, b)
-    #                     print(f"Distance to toad: {distance}")
-    #                     if distance <= 4:
-    #                         return True
-    #     return False
-    
-    # def get_fly_dist(self, row, col, game_area):
-    #     x, y = game_area.shape  # x is the number of rows, y is the number of columns
-    #     for b in range(y):  # Iterate over columns
-    #         for a in range(x):  # Iterate over rows
-    #             # Check for blocks
-    #             if game_area[a, b] == Element.FLY.value:
-    #                 # Compute distance
-    #                 if b >= col:  # If gumba is to the right of Mario
-    #                     distance = self.get_distance(row, col, a, b)
-    #                     print(f"Distance to fly: {distance}")
-    #                     if distance <= 3:
-    #                         return True
-    #     return False
 
     def check_platform_jump(self, row, col, game_area):
         x, y = game_area.shape  # x is the number of rows, y is the number of columns
@@ -400,7 +372,7 @@ class MarioExpert:
                     if row >= a and b >= col:  # If power up is to the right and above Mario
                         distance = self.get_distance(row, col, a, b)
                         print(f"Distance to power up: {distance}")
-                        if distance <= 3.0 and game_area[row+2,col] == Element.GROUND.value:
+                        if distance <= 3.0 and game_area[row+2,col] == Element.GROUND.value: # if on ground
                             return True
                         return False # missed power up
                     
@@ -590,7 +562,7 @@ class MarioExpert:
         """
         Runs each step of the game
         """
-        # input("Press enter to continue") # for testing
+        #input("Press enter to continue") # for testing
         # Choose an action - button press or other...
         action = self.choose_action()
         # Run the action on the environment
